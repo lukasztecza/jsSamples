@@ -1,0 +1,582 @@
+<!Doctype html>
+<html>
+<head>
+<title>Converter</title>
+</head>
+<body>
+<style>
+#pongGame {
+    background: #202c2f;
+    width: 500px;
+    height: 500px;
+    margin: 0 auto;
+    position: relative;
+}
+
+#score {
+    margin: 0 auto 10px auto;
+    border-radius: 10px;
+    text-align: center;
+}
+
+#score span {
+    font-size: 4em;
+}
+
+#winResult {
+    width: 100%;
+    height: 100%;
+}
+
+#ball {
+    position: absolute;
+    visibility: hidden;
+}
+
+#coin {
+    width: 30px;
+    height: 30px;
+    position: absolute;
+    left: 10px;
+    background: url(coin.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    filter: alpha(opacity=0);
+}
+
+#boardTop {
+    background: url(handTop.png);
+}
+
+#boardRight {
+    background: url(handRight.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#boardBottom {
+    background: url(handBottom.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#boardLeft {
+    background: url(handLeft.png);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#boardTop, #boardRight, #boardBottom, #boardLeft {
+    filter: alpha(opacity=60); 
+    opacity: 0.6;
+    position: absolute;
+    visibility: hidden;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+}
+
+#pongGame p {
+    position: absolute;
+    left: 10px;
+    color: white;
+    z-index: 1;
+}
+
+#pongGame p span:last-of-type {
+    visibility: hidden;
+}
+
+#pongGame p:hover span:last-of-type {
+    visibility: visible;
+}
+
+#pongGame p:hover span:first-of-type {
+    display: none;
+}
+</style>
+<section id="score">
+    <span>0</span>
+</section>
+<section id="pongGame">
+    <p><span>how to play</span><span>Control hands with w (up), s (down), a (left), d (right) keys, press ` (restart) to begin (key below ESC), try to play 60 seconds taking everything from the Earth ...</span></p>
+    <div id="ball">
+        <div data-working="0" id="coin">        
+        </div>
+    </div>
+    <div id="boardTop">
+    </div>
+    <div id="boardRight">
+    </div>
+    <div id="boardBottom">
+    </div> 
+    <div id="boardLeft">
+    </div>
+    <div id="winResult">
+    </div>
+</section>
+<script>
+//initialize pongGame
+var pongGame = function pongGame() {
+    //boards arrays [0 => top, 1 => right, 2 => bottom, 3 => left] where coords are [0 => left, 1 => bottom]
+    var ballSize = 55,
+        boardArea = 60,
+        boardSize = 40,
+        windowSize = 500,
+        ballPosition = [],
+        ballDirections = [],
+        ball = document.getElementById("ball"),
+        coin = document.getElementById("coin"),
+        boardsPositions = [],
+        boardsDirections = [],
+        boardTop = document.getElementById("boardTop"),
+        boardRight = document.getElementById("boardRight"), 
+        boardBottom = document.getElementById("boardBottom"), 
+        boardLeft = document.getElementById("boardLeft"),
+        ballInterval, timeInterval, boardsIntervals = [],
+        winText = document.querySelector("#score span"),
+        winResult = document.getElementById("winResult"),
+        time, i, sound;
+    
+    //set styles
+    ball.style.width = ball.style.height = ballSize + "px";
+    boardTop.style.width = boardArea + "px";
+    boardTop.style.height = boardSize + "px";
+    boardRight.style.width = boardSize + "px";
+    boardRight.style.height = boardArea + "px";
+    boardBottom.style.width = boardArea + "px";
+    boardBottom.style.height = boardSize + "px";
+    boardLeft.style.width = boardSize + "px";
+    boardLeft.style.height = boardArea + "px";
+
+    //board moves
+    var moveUp = function moveUp() {
+        if (boardsPositions[1][1] < parseInt(windowSize) - parseInt(boardArea)) {
+            boardsPositions[1][1] = parseInt(boardsPositions[1][1]) + parseInt(ballSize);
+            boardRight.style.bottom = boardsPositions[1][1] + "px";
+        }
+        if (boardsPositions[3][1] < parseInt(windowSize) - parseInt(boardArea)) {
+            boardsPositions[3][1] = parseInt(boardsPositions[3][1]) + parseInt(ballSize);
+            boardLeft.style.bottom = boardsPositions[3][1] + "px";
+        }
+    }
+    var moveRight = function moveRight() {
+        if (boardsPositions[0][0] < parseInt(windowSize) - parseInt(boardArea)) {
+            boardsPositions[0][0] = parseInt(boardsPositions[0][0]) + parseInt(ballSize);
+            boardTop.style.left = boardsPositions[0][0] + "px";
+        }
+        if (boardsPositions[2][0] < parseInt(windowSize) - parseInt(boardArea)) {
+            boardsPositions[2][0] = parseInt(boardsPositions[2][0]) + parseInt(ballSize);
+            boardBottom.style.left = boardsPositions[2][0] + "px";
+        }
+    }
+    var moveDown = function moveDown() {
+        if (boardsPositions[1][1] > 0) {
+            boardsPositions[1][1] = parseInt(boardsPositions[1][1]) - parseInt(ballSize);
+            boardRight.style.bottom = boardsPositions[1][1] + "px";
+        }
+        if (boardsPositions[3][1] > 0) {
+            boardsPositions[3][1] = parseInt(boardsPositions[3][1]) - parseInt(ballSize);
+            boardLeft.style.bottom = boardsPositions[3][1] + "px";
+        }
+    }
+    var moveLeft = function moveLeft() {
+        if (boardsPositions[0][0] > 0) {
+            boardsPositions[0][0] = parseInt(boardsPositions[0][0]) - parseInt(ballSize);
+            boardTop.style.left = boardsPositions[0][0] + "px";
+        }
+        if (boardsPositions[2][0] > 0) {
+            boardsPositions[2][0] = parseInt(boardsPositions[2][0]) - parseInt(ballSize);
+            boardBottom.style.left = boardsPositions[2][0] + "px";
+        }
+    }
+    
+    //coin jump
+    var coinJump = function coinJump() {
+        if (coin.dataset.working != "0") {return; }
+        coin.dataset.working = "1";
+        coin.style.bottom = "10px";
+        sound = new Audio("coin.wav");
+        sound.play();
+        
+        var i = 0,
+            show = function show() {
+                i += 1;
+                if (i <= 50) {
+                    coin.style.opacity = i/50;
+                    coin.style.filter = "alpha(opacity=" + 2*i + ")";
+                    coin.style.bottom = i + "px";
+                    setTimeout(show, 5);
+                } else if (i > 50 && i < 100) {
+                    coin.style.opacity = (100 - i)/50;
+                    coin.style.filter = "alpha(opacity=" + 2*(100 - i) + ")";
+                    coin.style.bottom = i + "px";
+                    setTimeout(show, 5);
+                } else {
+                    coin.style.opacity = 0;
+                    coin.style.filter = "alpha(opacity=0)";
+                    coin.dataset.working = "0";
+                }
+            }();
+    };
+    
+    //ball motion
+    var ballMotion = function ballMotion() {
+        if (ballDirections[0] === 1) {
+            ball.style.left = ballPosition[0]++ + "px";
+        } else if (ballDirections[0] === -1) {
+            ball.style.left = ballPosition[0]-- + "px";
+        }
+        if (ballDirections[1] === 1) {
+            ball.style.bottom = ballPosition[1]++ + "px";
+        } else if (ballDirections[1] === -1) {
+            ball.style.bottom = ballPosition[1]-- + "px";
+        }
+        if (
+            ballDirections[0] === 1 &&
+            ballPosition[0] > parseInt(boardsPositions[1][0]) - parseInt(ballSize) &&
+            ballPosition[0] < parseInt(boardsPositions[1][0]) - parseInt(ballSize) + parseInt(boardSize) &&
+            ballPosition[1] > parseInt(boardsPositions[1][1]) - parseInt(ballSize) && 
+            ballPosition[1] < parseInt(boardsPositions[1][1]) + parseInt(boardArea)
+        ) {
+            ballDirections[0] = -1;
+            coinJump();
+        } else if (
+            ballDirections[0] === -1 &&
+            ballPosition[0] < parseInt(boardsPositions[3][0]) + parseInt(boardSize) &&
+            ballPosition[0] > parseInt(boardsPositions[3][0]) &&
+            ballPosition[1] > parseInt(boardsPositions[3][1]) - parseInt(ballSize) &&
+            ballPosition[1] < parseInt(boardsPositions[3][1]) + parseInt(boardArea)
+        ) {
+            ballDirections[0] = 1;
+            coinJump();
+        }
+        if (
+            ballDirections[1] === 1 &&
+            ballPosition[1] > parseInt(boardsPositions[0][1]) - parseInt(ballSize) &&
+            ballPosition[1] < parseInt(boardsPositions[0][1]) - parseInt(ballSize) + parseInt(boardSize) &&
+            ballPosition[0] > parseInt(boardsPositions[0][0]) - parseInt(ballSize) && 
+            ballPosition[0] < parseInt(boardsPositions[0][0]) + parseInt(boardArea)
+        ) {
+            ballDirections[1] = -1;
+            coinJump();
+        } else if (
+            ballDirections[1] === -1 &&
+            ballPosition[1] < parseInt(boardsPositions[2][1]) + parseInt(boardSize) &&
+            ballPosition[1] > parseInt(boardsPositions[2][1]) &&
+            ballPosition[0] > parseInt(boardsPositions[2][0]) - parseInt(ballSize) &&
+            ballPosition[0] < parseInt(boardsPositions[2][0]) + parseInt(boardArea)
+        ) {
+            ballDirections[1] = 1;
+            coinJump();
+        }
+        if (
+            ballPosition[0] > parseInt(windowSize)  - parseInt(ballSize) || 
+            ballPosition[0] < 0 || 
+            ballPosition[1] > parseInt(windowSize)  - parseInt(ballSize) || 
+            ballPosition[1] < 0
+        ) {
+            if (typeof ballInterval !== 'undefined') {clearInterval(ballInterval);}
+            if (typeof timeInterval !== 'undefined') {clearInterval(timeInterval);}
+            i = boardsIntervals.length;
+            while (i--) {
+                if (typeof boardsIntervals[i] !== 'undefined') {clearInterval(boardsIntervals[i]);}
+            }
+            sound = new Audio("lost.wav");
+            sound.play();
+            winResult.style.background = "url('lost.png')";
+            winResult.style.backgroundSize = "100% 100%";
+            winResult.style.backgroundRepeat = "no-repeat";
+            ball.style.display = "none";
+            boardTop.style.display = "none";
+            boardRight.style.display = "none";
+            boardBottom.style.display = "none";
+            boardLeft.style.display = "none";
+        }
+    }
+    
+    //boards motion
+    var boardsMotion = function boardsMotion() {    
+        i = Math.floor(Math.random() * 100) + 10;
+        if (time === 5) {
+            boardsIntervals[3] = window.setInterval(function() {
+                if (boardsDirections[3] === 1) {
+                    boardLeft.style.left = boardsPositions[3][0]++ + "px";
+                } else if (boardsDirections[3] === -1) {
+                    boardLeft.style.left = boardsPositions[3][0]-- + "px";
+                }
+                if (
+                    boardsDirections[3] === 1 &&
+                    boardsPositions[3][0] > parseInt(windowSize) * 2/5 - parseInt(boardSize)
+                ) {
+                    boardsDirections[3] = -1;
+                } else if (
+                    boardsDirections[3] === -1 &&
+                    boardsPositions[3][0] < 0
+                ) {
+                    boardsDirections[3] = 1;
+                }
+            }, i);
+        } else if (time === 10) {
+            boardsIntervals[1] = window.setInterval(function() {
+                if (boardsDirections[1] === 1) {
+                    boardRight.style.left = boardsPositions[1][0]++ + "px";
+                } else if (boardsDirections[1] === -1) {
+                    boardRight.style.left = boardsPositions[1][0]-- + "px";
+                }
+                if (
+                    boardsDirections[1] === 1 &&
+                    boardsPositions[1][0] > parseInt(windowSize) - parseInt(boardSize)
+                ) {
+                    boardsDirections[1] = -1;
+                } else if (
+                    boardsDirections[1] === -1 &&
+                    boardsPositions[1][0] < parseInt(windowSize) * 3/5
+                ) {
+                    boardsDirections[1] = 1;
+                }
+            }, i);
+        } else if (time === 15) {
+            boardsIntervals[0] = window.setInterval(function() {
+                if (boardsDirections[0] === 1) {
+                    boardTop.style.bottom = boardsPositions[0][1]++ + "px";
+                } else if (boardsDirections[0] === -1) {
+                    boardTop.style.bottom = boardsPositions[0][1]-- + "px";
+                }
+                if (
+                    boardsDirections[0] === 1 &&
+                    boardsPositions[0][1] > parseInt(windowSize) - parseInt(boardSize)
+                ) {
+                    boardsDirections[0] = -1;
+                } else if (
+                    boardsDirections[0] === -1 &&
+                    boardsPositions[0][1] < parseInt(windowSize) * 3/5
+                ) {
+                    boardsDirections[0] = 1;
+                }
+            }, i);
+        } else if (time === 20) {
+            boardsIntervals[2] = window.setInterval(function() {
+                if (boardsDirections[2] === 1) {
+                    boardBottom.style.bottom = boardsPositions[2][1]++ + "px";
+                } else if (boardsDirections[2] === -1) {
+                    boardBottom.style.bottom = boardsPositions[2][1]-- + "px";
+                }
+                if (
+                    boardsDirections[2] === 1 &&
+                    boardsPositions[2][1] > parseInt(windowSize) * 2/5 - parseInt(boardSize)
+                ) {
+                    boardsDirections[2] = -1;
+                } else if (
+                    boardsDirections[2] === -1 &&
+                    boardsPositions[2][1] < 0
+                ) {
+                    boardsDirections[2] = 1;
+                }
+            }, i);
+        }
+        winText.innerHTML = time;
+    }
+    
+    //ball speed
+    var ballSpeed = function ballSpeed() {
+        if (time === 25) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 8);         
+        } else if (time === 35) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 7);
+        } else if (time === 40) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 6);
+        } else if (time === 45) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 5);
+        } else if (time === 50) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 4);
+        } else if (time === 55) {
+            clearInterval(ballInterval);
+            ballInterval = window.setInterval(function() {ballMotion();}, 3);
+        } else if (time === 60) {
+            clearInterval(ballInterval);
+            clearInterval(timeInterval);
+            i = boardsIntervals.length;
+            while (i--) {
+                if (typeof boardsIntervals[i] !== 'undefined') {clearInterval(boardsIntervals[i]);}
+            }
+            winResult.style.background = "url('win.png')";
+            winResult.style.backgroundSize = "100% 100%";
+            winResult.style.backgroundRepeat = "no-repeat";
+            ball.style.display = "none";
+            boardTop.style.display = "none";
+            boardRight.style.display = "none";
+            boardBottom.style.display = "none";
+            boardLeft.style.display = "none";
+            sound = new Audio("timer.wav");
+            sound.play();
+            sound = new Audio("explosion.wav");
+            setTimeout(function() {
+                sound.play();
+                winResult.style.background = "url('theEnd.png')";
+                winResult.style.backgroundSize = "100% 100%";
+                winResult.style.backgroundRepeat = "no-repeat";
+            }, 5000);
+        }
+    }
+    
+    //earth damage
+    var earthDamage = function earthDamage() {
+        var times = [4,8,12,16,20,25,30,35,40,45,50,55], positions = [];
+            positions[4] = "-55px 0px";
+            positions[8] = "-110px 0px";
+            positions[12] = "-165px 0px";
+            positions[16] = "0px -55px ";
+            positions[20] = "-55px -55px";
+            positions[25] = "-110px -55px";
+            positions[30] = "-165px -55px";
+            positions[35] = "-0px -110px";
+            positions[40] = "-55px -110px";
+            positions[45] = "-110px -110px";
+            positions[50] = "-165px -110px";
+            positions[55] = "-0px -165px";
+        
+        if (times.indexOf(time) > -1) {
+        ball.style.backgroundPosition = positions[time];
+        }
+    }
+    
+    //restart the pongGame
+    var restart = function restart() {
+        //reset images
+        winText.innerHTML = "0";
+        winResult.style.background = "none";
+        boardTop.style.display = "block";
+        boardRight.style.display = "block";
+        boardBottom.style.display = "block";
+        boardLeft.style.display = "block";
+        ball.style.background = "url('earths.png')";
+        ball.style.backgroundPosition = "0px 0px";
+        ball.style.backgroundRepeat = "no-repeat";
+        ball.style.display = "block";
+        
+        //position all elements
+        if (Math.random() > 0.5) {
+            ballDirections[0] = 1;
+            ballPosition[0] = 100 + Math.floor(Math.random() * 100);
+        } else {
+            ballDirections[0] = -1;
+            ballPosition[0] = parseInt(windowSize) - 100 - parseInt(ballSize) - Math.floor(Math.random() * 100);
+        }
+        if (Math.random() > 0.5) {
+            ballDirections[1] = 1;
+            ballPosition[1] = 100 + Math.floor(Math.random() * 100);
+        } else {
+            ballDirections[1] = -1;
+            ballPosition[1] = parseInt(windowSize) - 100 - parseInt(ballSize) - Math.floor(Math.random() * 100);
+        }
+        boardsPositions = [
+            [[parseInt(windowSize)/2 - parseInt(boardArea)/2],[parseInt(windowSize) - 2*parseInt(boardSize)]],
+            [[parseInt(windowSize) - 2*parseInt(boardSize)],[parseInt(windowSize)/2 - parseInt(boardArea)/2]],
+            [[[parseInt(windowSize)/2 - parseInt(boardArea)/2]],[parseInt(boardSize)]],
+            [[parseInt(boardSize)],[[parseInt(windowSize)/2 - parseInt(boardArea)/2]]]
+        ];
+        boardsDirections = [-1, -1, 1, 1];
+        boardTop.style.left = boardsPositions[0][0] + "px";
+        boardTop.style.bottom = boardsPositions[0][1] + "px";
+        boardRight.style.left = boardsPositions[1][0] + "px";
+        boardRight.style.bottom = boardsPositions[1][1] + "px";
+        boardBottom.style.left = boardsPositions[2][0] + "px";
+        boardBottom.style.bottom = boardsPositions[2][1] + "px";
+        boardLeft.style.left = boardsPositions[3][0] + "px";
+        boardLeft.style.bottom = boardsPositions[3][1] + "px";
+        boardTop.style.visibility = boardRight.style.visibility = boardBottom.style.visibility = boardLeft.style.visibility = "visible";
+        ball.style.left = ballPosition[0] + "px";
+        ball.style.bottom = ballPosition[1] + "px";
+        ball.style.visibility = "visible";
+        
+        //clear intervals if exist
+        if (typeof ballInterval !== 'undefined') {clearInterval(ballInterval);}
+        if (typeof timeInterval !== 'undefined') {clearInterval(timeInterval);}
+        i = boardsIntervals.length;
+        while (i--) {
+            if (typeof boardsIntervals[i] !== 'undefined') {clearInterval(boardsIntervals[i]);}
+        }
+        
+        //begin the pongGame
+        time = 0;
+        ballInterval = window.setInterval(function() {ballMotion();}, 10);
+        timeInterval = window.setInterval(function() {time++;boardsMotion();ballSpeed();}, 1000);
+        earthInterval = window.setInterval(function() {earthDamage();}, 1000);
+    }
+    
+    //available from outside
+    return {
+        moveUp: moveUp,
+        moveRight: moveRight,
+        moveDown: moveDown,
+        moveLeft: moveLeft,
+        restart: restart,
+    }
+}();
+
+//add listenters
+if (window.innerWidth > 500) {
+    window.addEventListener('keydown', function(e) {
+        var keyCode = e.keyCode || e.which,
+            key = {up: 87, right: 68, down: 83, left: 65, enter: 192};
+
+        switch(keyCode){
+            case key.up:
+                pongGame.moveUp();
+                break;
+            case key.right:
+                pongGame.moveRight();
+                break;
+            case key.down: 
+                pongGame.moveDown();
+                break;
+            case key.left: 
+                pongGame.moveLeft();
+                break;
+            case key.enter:
+                pongGame.restart();
+        }
+    });
+} else {
+    document.querySelector("#score").innerHTML = "Your screen has to be at least 500px width to play pong game";
+    document.getElementById("pongGame").style.display = "none";
+}
+
+/** mobile users in case code is used outside as an only element
+//for mobile users
+var touchstartX, touchstartY, touchendX, touchendY;
+window.addEventListener('touchstart', function(event) {
+    event.preventDefault();
+    touchstartX = event.changedTouches[0].pageX;
+    touchstartY = event.changedTouches[0].pageY;
+});
+window.addEventListener('touchend', function(event) {
+    event.preventDefault();
+    touchendX = event.changedTouches[0].pageX;
+    touchendY = event.changedTouches[0].pageY;
+    if (parseInt(touchendY) < parseInt(touchstartY) - 150) {
+        pongGame.moveUp();
+    }
+    if (parseInt(touchendX) > parseInt(touchstartX) + 150) {
+        pongGame.moveRight();
+    }
+    if (parseInt(touchendY) > parseInt(touchstartY) + 150) {
+        pongGame.moveDown();
+    }
+    if (parseInt(touchendX) < parseInt(touchstartX) - 150) {
+        pongGame.moveLeft();
+    }
+    if (parseInt(touchendY) == parseInt(touchstartY)) {
+        pongGame.restart();
+    }
+});
+*/
+</script>
+</body>
+</html>

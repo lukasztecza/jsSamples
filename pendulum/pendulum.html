@@ -1,0 +1,467 @@
+<!Doctype html>
+<html>
+<head>
+<title>Converter</title>
+</head>
+<body>
+<style>
+#pendulum {
+    width: 1050px;
+    margin: 0 auto;
+}
+
+#button {
+    border-top: 1px solid #f6f6f6;
+    border-right: 1px solid #dfdfdf;
+    border-bottom: 1px solid #dfdfdf;
+    border-left: 1px solid #f6f6f6;
+    background: #ececec;
+    color: black;
+    padding: 5px 20px;
+    -moz-transition: background 0.7s, color 0.7s;
+    -webkit-transition: background 0.7s, color 0.7s;
+    -o-transition: background 0.7s, color 0.7s;
+    transition: background 0.7s, color 0.7s;
+}
+
+#button:hover {
+    background: #e6e6e6;
+    color:coral;
+}
+
+#loading {
+    background: url(loading.gif);
+    background-size: 100% 100%;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    margin-left: -50px;
+    margin-top: -50px;
+    width: 100px;
+    height: 100px;
+    z-index: 1;
+    display: none;
+}
+
+#help p {
+    display: none;
+    color: blue;
+}
+
+#help:hover p {
+    display: block;
+}
+
+#parameters {
+    width: 1050px;
+    display:inline-block;
+    position: relative;
+    float: right;
+}
+
+#parameters label span {
+    float:right;
+    margin-right: 100px
+}
+
+#parameters label input {
+    position: absolute;
+    width: 70px;
+    right: 0;
+}
+
+#success {
+    padding-top: 15px;
+    color: green;
+    clear: both;
+}
+
+#error {
+    color: red;
+}
+
+.axis-block {
+    border:1px solid #ffffff;
+    display:inline-block;
+}
+
+.axis {
+    border:1px solid #d3d3d3;
+    display:inline-block;
+}
+
+.graph {
+   border:1px solid #d3d3d3;
+}
+</style>
+<section id="notification">
+</section>
+<section id="pendulum">
+    <div id="loading"></div>
+    <div id="help">
+        <h3>Numerical simulation of a pendulum <i>(move mouse to this line for details)</i></h3>
+        <p>This is the simulation of the pendulum which is affected by the drag force in the presence of the gravitational acceleration</p>
+        <p>Change parameters of the pendulum (initial angle, thread length, mass) to see how it affects the motion</p>
+        <p>You can change parameters of the gravitational acceleration and the drag force (which is correlated with the velocity see below)</p>
+        <p>To make simulation more precise increase time step power, see how it affects calculation of times of the amplitude decreases</p>
+        <p>You can change time of the whole simulation (note that long time of the simulation with high precision may take too much time to calculate)</p>
+    </div>
+    <div>
+        <div id="parameters">
+            <label>Initial angle [°]<span>[min = 10, max = 90]</span>:
+                <input id="angle" type="number" min="10" max="90" step="1" value="90" />
+            </label><br /><hr />
+            <label>Gravitational acceleration [m ⁄ s²]<span>[min = 0.01, max = 10]</span>: 
+                <input id="acceleration" type="number" min="0.01" max="10" step="0.01" value="9.81" />
+            </label><br /><hr />
+            <label>Thread length [cm]<span>[min = 1, max = 100]</span>:
+                <input id="thread" type="number" min="1" max="100" value="50" />
+            </label><br /><hr />
+            <label>Drag coefficient "b" where (F = -b × v²) [kg ⁄ m °]<span>[min = 0.01, max = 0.1]</span>:
+                <input id="drag" type="number" min="0.01" max="0.1" step="0.01" value="0.05" />
+            </label><br /><hr />
+            <label>Mass [kg]<span>[min = 0.1, max = 1]</span>:
+                <input id="mass" type="number" min="0.1" max="1" step="0.1" value="0.1" />
+            </label><br /><hr />
+            <label>Time step power "n" [s × 10⁻ⁿ]<span>[min = 1, max = 6]</span>:
+                <input id="step" type="number" min="1" max="6" step="1" value="3" />
+            </label><br /><hr />
+            <label>Simulation time [s]<span>[min = 1, max = 100]</span>:
+                <input id="time" type="number" min="1" max="100" step="1" value="25" />
+            </label><br /><hr />
+            <input id="button" type="button" value="Calculate" /><br />
+        </div>
+    </div>
+    <div id="success"></div>
+    <div id="error"></div>
+    <h3>Angle [rad] vs time [s]</h3>
+    <div>
+        <canvas id="axisy1" width="20" height="320" class="axis"></canvas>
+        <canvas id="chart1" width="1000" height="320" class="graph"></canvas>
+    </div>
+    <div>
+        <canvas width="20" height="20" class="axis-block"></canvas>
+        <canvas id="axisx1" width="1000" height="20" class="axis"></canvas>
+    </div>    
+    <h3>Angular [rad ⁄ s] velocity vs time [s]</h3>
+    <div>
+        <canvas id="axisy2" width="20" height="320" class="axis"></canvas>
+        <canvas id="chart2" width="1000" height="320" class="graph"></canvas>   
+    </div>
+    <div>
+        <canvas width="20" height="20" class="axis-block"></canvas>
+        <canvas id="axisx2" width="1000" height="20" class="axis"></canvas>
+    </div> 
+    <h3>Angular acceleration [rad ⁄ s²] vs time [s]</h3>
+    <div>
+        <canvas id="axisy3" width="20" height="320" class="axis"></canvas>
+        <canvas id="chart3" width="1000" height="320" class="graph"></canvas>   
+    </div>
+    <div>
+        <canvas width="20" height="20" class="axis-block"></canvas>
+        <canvas id="axisx3" width="1000" height="20" class="axis"></canvas>
+    </div>
+</section> 
+<script id="calculate" type="javascript/worker">
+onmessage = function(e) {
+    //set initial values
+    var m = parseFloat(e.data[0]),                         //ball mass [kg]
+        l = parseFloat(e.data[1]) / 100,                 //thread length [m]
+        b = parseFloat(e.data[2]),                         //drag coefficient value [kg/m]
+        q = (parseFloat(e.data[3]) / 360) * 2 * Math.PI,  //initial angle [rad]
+        g = parseFloat(e.data[4]),                 //initial acceleration [m/s^2]
+        tmax = parseFloat(e.data[5]),                      //simulation time [s]
+        dt = Math.pow(10, -parseFloat(e.data[6])),         //time step [s]
+        t = 0;                                  //current time [s]
+         
+    //set first calculation step values
+    var row = [],
+        results = [],
+        limit = tmax/dt,
+        i, j, ctx;
+    t = t;                      //current time
+    q = q;                      //current angle
+    w = 0;                      //current angular velocity
+    e = (-(g/l)) * Math.sin(q); //current angular acceleration
+    qmax = q;                   //max angle
+    wmax = 0;                   //max angular velocity (will be updated during calculation)
+    emax = e;                   //max angular acceleration
+
+    //push first row to results [time, angle, x coordinate, y coordinate, angular velocity, angular acceleration]
+    row = [t, q, Math.cos(q), Math.sin(q), w, e];
+    results.push(row);
+    
+    //calculate
+    for (i = 0; i < limit; i++) {
+        //policz dla kolejnego kroku
+        t = t + dt;
+        q = q + w*dt + e * dt *dt /2;
+        w = w + e*dt;
+        if (Math.abs(w) > Math.abs(wmax)) {wmax = w; }//update max angular velocity
+        //take into account 4 different situations for calculating angular acceleration
+        if (q >= 0 && w <= 0) {       //angle is positive and decreasing
+            e = -(g/l) * Math.sin(q) + ((l*b)/m) * w*w;
+        } else if (q < 0 && w <= 0) { //angle is negative and decreasing
+            e = -(g/l) * Math.sin(q) + ((l*b)/m) * w*w;
+        } else if (q <= 0 && w > 0) { //angle is negative and increasing
+            e = -(g/l) * Math.sin(q) - ((l*b)/m) * w*w;
+        } else if (q > 0 && w > 0) {  //angle is positive and increasing
+            e = -(g/l) * Math.sin(q) - ((l*b)/m) * w*w;   
+        }
+        //insert row into results
+        row = [t, q, Math.cos(q), Math.sin(q), w, e];
+        results.push(row);
+    }
+    postMessage([results, [tmax, qmax, wmax, emax]]);
+}
+</script>
+<script>
+var calculate = function calculate () {
+    //get all elements
+    var loading = document.getElementById("loading"),
+        angle = document.getElementById("angle"),
+        acceleration = document.getElementById("acceleration"),
+        thread = document.getElementById("thread"),
+        drag = document.getElementById("drag"),
+        mass = document.getElementById("mass"),
+        step = document.getElementById("step"),
+        time = document.getElementById("time"),
+        button = document.getElementById("button"),
+        success = document.getElementById("success"),
+        error = document.getElementById("error"),
+        yaxises = [],
+        xaxises = [],
+        charts = [];
+    yaxises[1] = document.getElementById("axisy1");
+    charts[1] = document.getElementById("chart1");
+    xaxises[1] = document.getElementById("axisx1"),
+    yaxises[2] = document.getElementById("axisy2");
+    charts[2] = document.getElementById("chart2");
+    xaxises[2] = document.getElementById("axisx2");
+    yaxises[3] = document.getElementById("axisy3");
+    charts[3] = document.getElementById("chart3");
+    xaxises[3] = document.getElementById("axisx3");
+
+    //check values
+    error.innerHTML = "";
+    if (
+        mass.value < 0.1 || mass.value > 1 ||
+        thread.value < 1 || thread.value > 100 ||
+        drag.value < 0.01 || drag.value > 0.1 ||
+        angle.value < 10 || angle.value > 90 ||
+        acceleration.value < 0.01 || acceleration.value > 10 ||
+        time.value < 1 || time.value > 100 ||
+        step.value < 1 || step.value > 6
+    ) {
+        error.innerHTML = "Please pass proper values for calculation";
+        return;
+    }
+    
+    var draw = function draw(results, tmax, qmax, wmax, emax) {
+        //draw axises and values
+        for (i = 1; i < 4; i++) {
+            //vertical axis
+            ctx = yaxises[i].getContext("2d");
+            ctx.canvas.width = ctx.canvas.width;
+            ctx.moveTo(19, 0);
+            ctx.lineTo(19, 320);
+            for (j = 0; j < 321; j += 80) {	
+                ctx.moveTo(10, j);
+                ctx.lineTo(19, j);
+            }
+            //vertical values
+            ctx.font = '7px Calibri';
+            switch (i) {
+                case 1: limit = qmax; break;//angle
+                case 2: limit = wmax; break;//angular velocity
+                case 3: limit = emax; break;//angular acceleration
+            }
+            ctx.strokeText(Math.round(10*Math.abs(limit))/10, 0, 10);
+            ctx.strokeText(Math.round(10*Math.abs(limit/2))/10, 0, 78);
+            ctx.strokeText('0', 0, 160);
+            ctx.strokeText(Math.round(-10*Math.abs(limit/2))/10, 0, 238);
+            ctx.strokeText(Math.round(-10*Math.abs(limit))/10, 0, 318);
+            ctx.stroke();
+            //horizontal axis
+            ctx = xaxises[i].getContext("2d");
+            ctx.canvas.width = ctx.canvas.width;
+            ctx.moveTo(0, 1);
+            ctx.lineTo(1000, 1);
+            for (j = 0; j < 1001; j += 100) {
+                ctx.moveTo(j, 0);
+                ctx.lineTo(j, 10);
+            }
+            //horizontal values
+            ctx.font = '7px Calibri';
+            for (j = 0; j < 10; j++) {
+                ctx.strokeText((j*((10*Math.abs(tmax))/10))/10, j*100, 17);
+            }
+            ctx.strokeText(tmax, 985, 17);
+            ctx.stroke();
+        }
+        
+        //draw charts
+        for (i = 1; i < 4; i++) {
+            ctx = charts[i].getContext("2d");
+            ctx.canvas.width = ctx.canvas.width;    
+            ctx.moveTo(0,160);
+            ctx.lineTo(1000,160);
+            switch (i) {
+                case 1://angle vs time
+                    ctx.moveTo(results[0][0], 160 - results[0][1]*160/qmax);
+                    for (j in results) {
+                        ctx.lineTo((1000 * results[j][0] / tmax), 160 - results[j][1]*160/qmax);
+                    }
+                    break;
+                case 2://angular velocity vs time
+                    ctx.moveTo(results[0][0], 160);
+                    for (j in results) {
+                        ctx.lineTo((1000 * results[j][0] / tmax), 160 - results[j][4]*160/wmax);
+                    }
+                    break;
+                case 3://angular acceleration vs time
+                    ctx.moveTo(results[0][0], 160 - results[0][5] * 160 / Math.abs(emax));
+                    for (j in results) {
+                        ctx.lineTo((1000 * results[j][0] / tmax), 160 - results[j][5]*160/Math.abs(emax));
+                    }
+                    break;
+            }   
+            ctx.stroke();   
+        }
+        
+        //get all angle vs time peaks
+        var half, quarter,
+            row = [],
+            peaks = [];
+        row = [0, results[0][1]];
+        peaks.push(row);
+        limit = results.length;
+        for (i = 1; i < limit; i++) {
+            if (((results[i][4] < 0) && (results[i-1][4] > 0)) || ((results[i][4] > 0) && (results[i-1][4] < 0))) {
+                row = [results[i][0], results[i][1]];
+                peaks.push(row);
+            }
+        }
+        
+        //get approximate times for amplitude decreased to the half and the quarter part of the initial value 
+        limit = peaks.length;
+        for (i = 0; i < limit; i++) {
+            if (Math.abs(peaks[i][1]) > qmax/2) {
+                if (i < limit - 1) {
+                    half = (peaks[i][0] + peaks[i+1][0]) / 2;
+                } else {
+                    half = null;    
+                }    
+            }
+            if (Math.abs(peaks[i][1]) > qmax/4) {
+                if (i < limit - 1) {
+                    quarter = peaks[i][0] - ((peaks[i+1][0] - peaks[i][0]) / 2);
+                } else {
+                    quarter = null;
+                }
+            }
+        }
+        
+        //display result text
+        var text = "";
+        if (half) {
+            text = "Amplitude has decreased to the half of the initial value after: ";
+            text += Math.round(100 * half)/100 + " s<br />";
+        } else {
+            error.innerHTML = "Simulation is too short to calculate when the amplitude decreases to the half and to the quarter part of the initial value"
+        }
+        if (half && quarter) {
+            text += "Amplitude has decreased to the quarter part of the initial value after: ";
+            text += Math.round(100 * quarter)/100 + " s<br />";
+        } else if (half) {
+            error.innerHTML = "Simulation is too short to calculate when the amplitude decreases to the quarter part of the initial value"
+        }
+        success.innerHTML = text;
+    }
+    
+    //use worker to perform calculations if not executed on mobile device
+    if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        //set initial values
+        var m = parseFloat(mass.value),                         //ball mass [kg]
+            l = parseFloat(thread.value) / 100,                 //thread length [m]
+            b = parseFloat(drag.value),                         //drag coefficient value [kg/m]
+            q = (parseFloat(angle.value) / 360) * 2 * Math.PI,  //initial angle [rad]
+            g = parseFloat(acceleration.value),                 //initial acceleration [m/s^2]
+            tmax = parseFloat(time.value),                      //simulation time [s]
+            dt = Math.pow(10, -parseFloat(step.value)),         //time step [s]
+            t = 0;                                  //current time [s]
+             
+        //set first calculation step values
+        var row = [],
+            results = [],
+            limit = tmax/dt,
+            i, j, ctx;
+        t = t;                      //current time
+        q = q;                      //current angle
+        w = 0;                      //current angular velocity
+        e = (-(g/l)) * Math.sin(q); //current angular acceleration
+        qmax = q;                   //max angle
+        wmax = 0;                   //max angular velocity (will be updated during calculation)
+        emax = e;                   //max angular acceleration
+
+        //push first row to results [time, angle, x coordinate, y coordinate, angular velocity, angular acceleration]
+        row = [t, q, Math.cos(q), Math.sin(q), w, e];
+        results.push(row);
+        
+        //calculate
+        for (i = 0; i < limit; i++) {
+            //policz dla kolejnego kroku
+            t = t + dt;
+            q = q + w*dt + e * dt *dt /2;
+            w = w + e*dt;
+            if (Math.abs(w) > Math.abs(wmax)) {wmax = w; }//update max angular velocity
+            //take into account 4 different situations for calculating angular acceleration
+            if (q >= 0 && w <= 0) {       //angle is positive and decreasing
+                e = -(g/l) * Math.sin(q) + ((l*b)/m) * w*w;
+            } else if (q < 0 && w <= 0) { //angle is negative and decreasing
+                e = -(g/l) * Math.sin(q) + ((l*b)/m) * w*w;
+            } else if (q <= 0 && w > 0) { //angle is negative and increasing
+                e = -(g/l) * Math.sin(q) - ((l*b)/m) * w*w;
+            } else if (q > 0 && w > 0) {  //angle is positive and increasing
+                e = -(g/l) * Math.sin(q) - ((l*b)/m) * w*w;   
+            }
+            //insert row into results
+            row = [t, q, Math.cos(q), Math.sin(q), w, e];
+            results.push(row);
+        }
+        draw(results, tmax, qmax, wmax, emax);
+    } else {
+        //show loading gif
+        loading.style.display = "block";
+
+        // instead of using seperate js file use inline worker
+        var blob = new Blob([
+             document.querySelector('#calculate').textContent
+        ], { type: "text/javascript" })
+
+        //perform calculation in worker
+        var worker = new Worker(window.URL.createObjectURL(blob));
+        worker.onmessage = function(e) {
+            var results = e.data[0],
+                tmax = e.data[1][0],    //max angle
+                qmax = e.data[1][1],    //max angle
+                wmax = e.data[1][2],    //max angular velocity
+                emax = e.data[1][3];    //max angular acceleration
+            
+            draw(results, tmax, qmax, wmax, emax);
+            
+            //hide loading gif
+            loading.style.display = "none";
+        }
+        worker.postMessage([mass.value, thread.value, drag.value, angle.value, acceleration.value, time.value, step.value]);
+     }
+}
+if (window.innerWidth > 1000) {
+    document.getElementById("button").onclick = function() {calculate();}
+} else {
+    document.getElementById("pendulum").style.display = "none";
+    document.getElementById("notification").innerHTML = "Your screen has to be at least 1000px width to run pendulum simulations";
+}
+</script>
+</body>
+</html>

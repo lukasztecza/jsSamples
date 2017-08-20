@@ -1,0 +1,243 @@
+<!Doctype html>
+<html>
+<head>
+<title>Converter</title>
+</head>
+<body>
+<style>
+#information p {
+    text-align:justify;
+}
+
+#information label {
+    display: inline-block;
+    min-width: 200px;
+}
+
+#information input {
+    max-width: 170px;
+}
+
+#information > input {
+    border-top: 1px solid #f6f6f6;
+    border-right: 1px solid #dfdfdf;
+    border-bottom: 1px solid #dfdfdf;
+    border-left: 1px solid #f6f6f6;
+    background: #ececec;
+    color: black;
+    padding: 5px 20px;
+    -moz-transition: background 0.7s, color 0.7s;
+    -webkit-transition: background 0.7s, color 0.7s;
+    -o-transition: background 0.7s, color 0.7s;
+    transition: background 0.7s, color 0.7s;
+}
+
+#information > input:hover {
+    background: #e6e6e6;
+    color:coral;
+}
+
+#information label input {
+    outline: 1px solid #ececec;
+    color: black;
+    margin-bottom: 5px;
+    padding: 5px;
+    -moz-transition: outline 0.7s;
+    -webkit-transition: outline 0.7s;
+    -o-transition: outline 0.7s;
+    transition: outline 0.7s;
+}
+
+#information label input:focus {
+    outline: 1px solid coral;
+}
+
+#lifeGame {
+    text-align: center;
+}
+
+#lifeGame > div {
+    display: inline-block;
+}
+</style>
+<section id="lifeGame">
+    <div id="information">
+        <p>
+            Specify width and height (3-30 fields) and click build to create board. 
+            Click on board to put life cells on it.
+            Specify evolution speed (100-1000 smaller is faster).
+            Click start to begin evolution (you can click on board to put more cells during evolution).
+            Click stop to clear board and set everything again.
+        </p>
+        <label>Width: <input type="text" name="width" /></label>
+        <label>Height: <input type="text" name="height" /></label>
+        <input type="button" name="build" value="build" />
+        <label>Speed: <input type="text" name="speed" /></label>
+        <input type="button" name="start" value="start" />
+        <input type="button" name="stop" value="stop" />
+    </div>
+    <hr />
+    <div>
+        <div id="container">
+        </div>
+    </div>
+</section>
+<script>
+var gameObject = function gameObject() {
+    var board = [],
+        sizeX = 0, 
+        sizeY = 0,
+        lifeInterval = 0;
+
+    var createBoard = function createBoard(x, y) {
+        var i, j, arr;
+        board = [];
+        sizeX = x;
+        sizeY = y;
+        for (i = 0; i < sizeY; i++) {
+            arr = [];
+            for (j = 0; j < sizeX; j++) {
+                arr.push(0);
+            }
+            board.push(arr);
+        }
+    }
+
+    var switchLifeOnBoard = function switchLifeOnBoard() {
+        if (board[this.getAttribute("data-coordinate-x")][this.getAttribute("data-coordinate-y")] === 0) {
+            this.style.backgroundColor = "black";
+            board[this.getAttribute("data-coordinate-x")][this.getAttribute("data-coordinate-y")] = 1;
+        } else {
+            this.style.backgroundColor = "yellow";
+            board[this.getAttribute("data-coordinate-x")][this.getAttribute("data-coordinate-y")] = 0;
+        }
+
+    }
+
+    var drawBoardOnElement = function drawBoardOnElement(element) {
+        var i, j, divElement;
+        for (i = 0; i < sizeY; i++) {
+            for (j = 0; j < sizeX; j++) {
+                divElement = document.createElement("div");
+                divElement.style.width = divElement.style.height = "10px";
+                divElement.style.display = "inline-block";
+                if (board[i][j] === 1) {
+                    divElement.style.backgroundColor = "black";
+                } else {
+                    divElement.style.backgroundColor = "yellow";   
+                }
+                divElement.style.float = "left";
+                divElement.setAttribute("data-coordinate-x", i);
+                divElement.setAttribute("data-coordinate-y", j);
+                divElement.addEventListener("click", switchLifeOnBoard);
+                element.appendChild(divElement);
+                if (j === sizeX - 1) {                    
+                    element.appendChild(divElement);
+                }
+            }
+        }
+        element.style.width = parseInt(sizeX * 10) + "px";
+        element.parentNode.style.width = parseInt(sizeX * 10) + 10 + "px";
+    }
+
+    var runEvolutionStep = function runEvolutionStep() {
+        var newBoard = [],
+            arr,
+            accompany;
+        for (i = 0; i < sizeY; i++) {
+            arr = [];
+            for (j = 0; j < sizeX; j++) {
+                accompany = 0;
+                if (board[i - 1] !== undefined && board[i - 1][j - 1] !== undefined && board[i - 1][j - 1] === 1) {
+                    accompany++;
+                }
+                if (board[i - 1] !== undefined && board[i - 1][j] !== undefined && board[i - 1][j] === 1) {
+                    accompany++;
+                }
+                if (board[i - 1] !== undefined && board[i - 1][j + 1] !== undefined && board[i - 1][j + 1] === 1) {
+                    accompany++;
+                }
+                if (board[i][j - 1] !== undefined && board[i][j - 1] === 1) {
+                    accompany++;
+                }
+                if (board[i][j + 1] !== undefined && board[i][j + 1] === 1) {
+                    accompany++;
+                }
+                if (board[i + 1] !== undefined && board[i + 1][j - 1] !== undefined && board[i + 1][j - 1] === 1) {
+                    accompany++;
+                }
+                if (board[i + 1] !== undefined && board[i + 1][j] !== undefined && board[i + 1][j] === 1) {
+                    accompany++;
+                }
+                if (board[i + 1] !== undefined && board[i + 1][j + 1] !== undefined && board[i + 1][j + 1] === 1) {
+                    accompany++;
+                }
+                if (board[i][j] === 1 && (accompany === 2 || accompany === 3)) {
+                    arr.push(1);
+                } else if (board[i][j] === 0 && accompany === 3) {
+                    arr.push(1);
+                } else {
+                    arr.push(0);
+                }
+            }
+            newBoard.push(arr);
+        }
+        board = newBoard;
+    }
+
+    var lifeCycle = function lifeCycle() {
+        var container = document.getElementById("container");
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+        runEvolutionStep();
+        drawBoardOnElement(document.getElementById("container"));
+    }
+
+    var buildBoard = function buidBoard() {
+        var width = parseInt(document.getElementsByName("width")[0].value),
+            height = parseInt(document.getElementsByName("height")[0].value);
+        if (!width || !height || width < 3 || width > 30 || height < 3 || height > 30) {
+            alert("Please type proper values. Width from 3 to 30, height from 3 to 30");
+            return;
+        } else if (lifeInterval || board.length) {
+            alert("Please stop previous life cycle before building new board");
+            return;
+        }
+        createBoard(width, height);
+        drawBoardOnElement(document.getElementById("container"));
+    }
+
+    var startLife = function startLife() {
+        var speed = parseInt(document.getElementsByName("speed")[0].value);
+        if (!speed || speed < 100 || speed > 1000) {
+            alert("Please type proper value. Speed should be between 100 and 1000");
+            return;
+        }
+        if (!lifeInterval && board.length) {
+            lifeInterval = setInterval(lifeCycle, speed);
+        }
+    }
+
+    var stopLife = function stopLife() {
+        var container = document.getElementById("container");
+        clearInterval(lifeInterval);
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+        lifeInterval = 0;
+        board = [];
+    }
+
+    return {
+        buildBoard: buildBoard,
+        startLife: startLife,
+        stopLife: stopLife
+    }                    
+}();
+document.getElementsByName("build")[0].addEventListener("click", gameObject.buildBoard);
+document.getElementsByName("start")[0].addEventListener("click", gameObject.startLife);
+document.getElementsByName("stop")[0].addEventListener("click", gameObject.stopLife);
+</script>
+</body>
+</html>

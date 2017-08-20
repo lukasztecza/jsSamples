@@ -1,0 +1,171 @@
+<!Doctype html>
+<html>
+<head>
+<title>Converter</title>
+</head>
+<body>
+<style>
+section#converter {
+    background: -webkit-linear-gradient(-45deg, grey, lightgrey); /* For Safari 5.1 to 6.0 */
+    background: -o-linear-gradient(-45deg, grey, lightgrey); /* For Opera 11.1 to 12.0 */
+    background: -moz-linear-gradient(-45deg, grey, lightgrey); /* For Firefox 3.6 to 15 */
+    background: linear-gradient(-45deg, grey, lightgrey); /* Standard syntax */
+    width: 300px;
+    padding: 30px;
+    margin: 0 auto;
+}
+
+section#converter > select, section#converter > input {
+    height: 30px;
+    width: 146px;
+    background-color: white;
+    margin-bottom: 20px;
+    -moz-transition: outline 0.7s;
+    -webkit-transition: outline 0.7s;
+    -o-transition: outline 0.7s;
+    transition: outline 0.7s;
+}
+
+section#converter > select > option[disabled] {
+    display: none;
+}
+
+section#converter > input {
+    width: 296px;
+    outline: 1px solid white;
+    text-indent: 10px;
+}
+
+section#converter > select:focus, section#converter > input:focus {
+    outline: 1px solid coral;
+}
+
+section#converter > #converterButton {
+    margin-bottom: 20px;
+    width: 296px;
+    background-color: #ececec;
+    line-height: 0;
+    padding: 15px 0;
+    font-size: 20px;
+    text-align: center;
+    -moz-transition: background-color 0.7s;
+    -webkit-transition: background-color 0.7s;
+    -o-transition: background-color 0.7s;
+    transition: background-color 0.7s;
+}
+
+section#converter > #converterButton:hover {
+    background-color: lightgrey;
+    cursor: pointer;
+}
+
+section#converter > #converterResult {
+    width: 296px;
+    background-color: white;
+    line-height: 0;
+    padding: 15px 0;
+    font-size: 20px;
+    text-align: center;
+    overflow: auto;
+}
+</style>
+<section id="converter">
+    <h1>Converter</h1>
+    <select id="converterSelectFrom" required>
+        <option value="0" disabled selected>From</option>
+        <option value="EUR">EUR</option>
+        <option value="GBP">GBP</option>
+        <option value="CHF">CHF</option>
+        <option value="USD">USD</option>
+        <option value="CAD">CAD</option>
+        <option value="AUD">AUD</option>
+        <option value="NZD">NZD</option>
+        <option value="RUB">RUB</option>
+        <option value="PLN">PLN</option>
+        <option value="CNY">CNY</option>
+        <option value="JPY">JPY</option>
+    </select>
+    <select id="converterSelectTo">
+        <option value="0" disabled selected>To</option>
+        <option value="EUR">EUR</option>
+        <option value="GBP">GBP</option>
+        <option value="CHF">CHF</option>
+        <option value="USD">USD</option>
+        <option value="CAD">CAD</option>
+        <option value="AUD">AUD</option>
+        <option value="NZD">NZD</option>
+        <option value="RUB">RUB</option>
+        <option value="PLN">PLN</option>
+        <option value="CNY">CNY</option>
+        <option value="JPY">JPY</option>
+    </select>
+    <input id="converterAmount" type="text" placeholder="How much money" />
+    <div id="converterButton">
+        Convert
+    </div>
+    <div id="converterResult">
+        Result
+    </div>
+</section>
+<script>
+var converter = function converter () {
+    var writeResult = function writeResult(data) {
+        var name = data.query.results.row.name,
+            rate = parseFloat(data.query.results.row.rate, 10),
+            result = document.getElementById("converterResult"),
+            amount = parseFloat(document.getElementById("converterAmount").value);
+        result.innerHTML = (rate * amount).toFixed(2);
+    }
+    
+    var sendRequest = function sendRequest() {
+        //get values
+        var from = document.getElementById("converterSelectFrom").value,
+            to = document.getElementById("converterSelectTo").value,
+            amount = document.getElementById("converterAmount").value,
+            result = document.getElementById("converterResult"),
+            script = document.createElement('script'),
+            currencyPattern = new RegExp(/^[A-Z]{3}$/),
+            amountPattern = new RegExp(/^\d+(\.\d+)?$/);
+        
+        //check values
+        if (!amountPattern.test(amount) ||
+            parseFloat(amount) === NaN ||
+            parseFloat(amount) < 0 ||
+            !currencyPattern.test(from) ||
+            !currencyPattern.test(to)
+        ) {
+            alert("Please fill in proper values");
+            return;
+        }
+        
+        //send query to yahoo
+        script.setAttribute('src', 
+            "http://query.yahooapis.com/v1/public/yql?q=select%20rate%2Cname%20from%20csv%20where%20url%3D'http%3A%2F%2Fdownload.finance.yahoo.com%2Fd%2Fquotes%3Fs%3D" +
+            from + to + "%253DX%26f%3Dl1n'%20and%20columns%3D'rate%2Cname'&format=json&callback=converter.writeResult"
+        );
+        document.body.appendChild(script);
+    }
+    
+    //available from outsite for callback
+    return {
+        writeResult: writeResult,
+        sendRequest: sendRequest
+    }
+}();
+
+window.addEventListener('keydown', function(e) {
+    var keyCode = e.keyCode || e.which,
+        key = {enter: 13};
+    
+    switch(keyCode){
+        case key.enter:
+            converter.sendRequest();
+    }
+});
+
+document.getElementById("converterButton").onclick = function() {
+    converter.sendRequest();
+}
+</script>
+</body>
+</html>
