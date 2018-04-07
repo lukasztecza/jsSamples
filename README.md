@@ -1,2 +1,2 @@
 # jsSamples
-JavaScript sample files
+JavaScript sample apps
